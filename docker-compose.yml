@@ -1,0 +1,76 @@
+version: '3.8'
+
+services:
+  mongodb:
+    image: mongo:latest
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb-data:/data/db
+    restart: always
+    networks:
+      - agent-network
+
+  # Backend API
+  app:
+    build:
+      context: .
+      args:
+        APP_ENV: ${APP_ENV:-development}
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./app:/app/app
+      - ./logs:/app/logs
+      - ./data:/app/data
+    env_file:
+      - .env
+    environment:
+      - APP_ENV=${APP_ENV:-development}
+      - MONGO_URI=mongodb://mongodb:27017
+    depends_on:
+      - mongodb
+    restart: on-failure
+    networks:
+      - agent-network
+      - monitoring
+
+
+  # Prometheus for metrics
+  prometheus:
+    image: prom/prometheus:latest
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+    networks:
+      - monitoring
+    restart: always
+
+  # Grafana for dashboards
+  grafana:
+    image: grafana/grafana:latest
+    ports:
+      - "3000:3000"
+    volumes:
+      - grafana-storage:/var/lib/grafana
+      - ./grafana/dashboards:/etc/grafana/provisioning/dashboards
+      - ./grafana/dashboards/dashboards.yml:/etc/grafana/provisioning/dashboards/dashboards.yml
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_USERS_ALLOW_SIGN_UP=false
+    networks:
+      - monitoring
+    restart: always
+
+networks:
+  agent-network:
+    driver: bridge
+  monitoring:
+    driver: bridge
+
+volumes:
+  grafana-storage:
+  mongodb-data:

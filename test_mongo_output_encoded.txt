@@ -1,0 +1,9 @@
+
+--- Test 1: Get User Details ---
+User Details: {'_id': '6992af14fdd95f490e710d53', 'email': 'sarip@dilshajinfotech.com', 'hashed_password': 'securepassword123'}
+
+--- Test 2: Get Payment History ---
+Recent Payments for sarip@dilshajinfotech.com: [{'user_id': 'sarip@dilshajinfotech.com', 'transaction_id': 'TXN_1001', 'amount': 5000, 'currency': 'INR', 'status': 'COMPLETED', 'description': 'Course Fee - Installment 1', 'date': '2026-02-16T11:15:56.865924'}, {'user_id': 'sarip@dilshajinfotech.com', 'transaction_id': 'TXN_1002', 'amount': 1500, 'currency': 'INR', 'status': 'PENDING', 'description': 'Exam Fee', 'date': '2026-02-16T11:15:56.865924'}]
+
+--- Test 3: Check Payment Status ---
+Payment Details: {'user_id': 'sarip@dilshajinfotech.com', 'transaction_id': 'TXN_1001', 'amount': 5000, 'currency': 'INR', 'status': 'COMPLETED', 'description': 'Course Fee - Installment 1', 'date': '2026-02-16T11:15:56.865924'}

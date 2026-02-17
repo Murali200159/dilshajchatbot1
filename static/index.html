@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dilshaj Infotech - AI Assistant</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+
+<body>
+    <div class="landing-container">
+        <h1>Welcome to Dilshaj Infotech</h1>
+        <p>Empowering Digital Transformation & IT Excellence</p>
+        <div class="features">
+            <div class="feature-card">
+                <i class="fas fa-code"></i>
+                <h3>Digital Solutions</h3>
+                <p>AI-driven applications and custom software development.</p>
+            </div>
+            <div class="feature-card">
+                <i class="fas fa-graduation-cap"></i>
+                <h3>IT Training</h3>
+                <p>Industry-ready programs in Full Stack, Java, and Python.</p>
+            </div>
+            <div class="feature-card">
+                <i class="fas fa-brain"></i>
+                <h3>EduProva</h3>
+                <p>Our intelligent educational assessment platform.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Chat Widget Container -->
+    <div id="chat-widget-container">
+        <!-- Chat Toggle Button -->
+        <button id="chat-toggle-btn" aria-label="Open Chat">
+            <i class="fas fa-robot"></i>
+        </button>
+
+        <!-- Chat Window -->
+        <div id="chat-window" class="hidden">
+            <div class="chat-header">
+                <div class="header-left">
+                    <div class="bot-icon">
+                        <i class="fas fa-robot"></i>
+                        <div class="status-dot-online"></div>
+                    </div>
+                    <div class="header-info">
+                        <h3>Dilshaj Infotech Assistant</h3>
+                        <span class="status-text">Online</span>
+                    </div>
+                </div>
+                <div class="header-actions">
+                    <button id="refresh-chat-btn" title="Refresh Chat"><i class="fas fa-sync-alt"></i></button>
+                    <button id="minimize-chat-btn" title="Minimize"><i class="fas fa-chevron-down"></i></button>
+                </div>
+            </div>
+
+            <div id="chat-messages" class="chat-messages">
+                <div class="message-row assistant">
+                    <div class="message-avatar"><i class="fas fa-robot"></i></div>
+                    <div class="message assistant">
+                        <div class="message-text">Hi! I'm the Dilshaj Infotech AI Assistant. How can I help you today?
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="quick-replies" class="quick-replies"></div>
+
+            <div class="chat-input-area">
+                <button id="attach-btn" class="input-action-btn" title="Add Attachment"><i
+                        class="fas fa-paperclip"></i></button>
+                <div style="width: 4px;"></div> <!-- spacer -->
+                <input type="text" id="user-input" placeholder="Type your message..." autocomplete="off">
+                <button id="emoji-btn" class="input-action-btn emoji-inside" title="Add Emoji"><i
+                        class="far fa-smile"></i></button>
+                <button id="send-btn"><i class="fas fa-paper-plane"></i></button>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+
+</html>
