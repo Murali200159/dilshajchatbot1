@@ -1,384 +1,179 @@
-# FastAPI LangGraph Agent Template
+ #Dilshaj Infotech AI Assistant
 
-A production-ready FastAPI template for building AI agent applications with LangGraph integration. This template provides a robust foundation for building scalable, secure, and maintainable AI agent services.
+A production-ready, single-agent conversational AI system designed to handle company inquiries, user data retrieval, and general chat. Powered by **LLaMA 3 (via Ollama)**, **LangGraph**, **FastAPI**, and **MongoDB**.
 
-## 🌟 Features
+## 🚀 Key Features
 
-- **Production-Ready Architecture**
+*   **Single Agent Router Architecture**: Intelligently routes user queries to specific tools or handles them directly via LLM.
+*   **Offline Capability**: Entirely self-hosted using **Ollama** and **Local LLMs** (no API keys required!).
+*   **Vector Search (RAG)**: Retrieves answers from local company documents (PDF/MD) using FAISS and Ollama Embeddings.
+*   **Direct Database Access**: Queries **MongoDB** for real-time user data (e.g., payment status, profiles).
+*   **Memory Persistence**: Remembers previous turns in the conversation using MongoDB-backed Checkpointing.
+*   **Fine-Tuning Support**: Includes scripts to fine-tune LLaMA on your own custom dataset and load it dynamically.
+*   **Production Ready**: Dockerized, async-optimized, and includes comprehensive logging/monitoring hooks.
 
-  - FastAPI for high-performance async API endpoints with uvloop optimization
-  - LangGraph integration for AI agent workflows with state persistence
-  - Langfuse for LLM observability and monitoring
-  - Structured logging with environment-specific formatting and request context
-  - Rate limiting with configurable rules per endpoint
-  - MongoDB for data persistence
-  - FAISS for local vector storage and RAG
-  - Docker and Docker Compose support
-  - Prometheus metrics and Grafana dashboards for monitoring
+---
 
-- **AI & LLM Features**
+## 🛠️ Technology Stack
 
-  - Long-term memory with mem0ai and pgvector for semantic memory storage
-  - LLM Service with automatic retry logic using tenacity
-  - Multiple LLM model support (GPT-4o, GPT-4o-mini, GPT-5, GPT-5-mini, GPT-5-nano)
-  - Streaming responses for real-time chat interactions
-  - Tool calling and function execution capabilities
+*   **Brain**: LLaMA 3 (Default) / Custom Fine-Tuned Models (Adapter Support).
+*   **Orchestration**: LangGraph + LangChain.
+*   **Backend**: FastAPI (Python 3.10+).
+*   **Database**: MongoDB (User Data & Chat History).
+*   **Knowledge Base**: FAISS (Local Vector Store).
+*   **Frontend**: Static HTML5/JS (Lightweight Web Chat).
+*   **Serving**: Uvicorn / Docker.
 
-- **Security**
+---
 
-  - JWT-based authentication
-  - Session management
-  - Input sanitization
-  - CORS configuration
-  - Rate limiting protection
-
-- **Developer Experience**
-
-  - Environment-specific configuration with automatic .env file loading
-  - Comprehensive logging system with context binding
-  - Clear project structure following best practices
-  - Type hints throughout for better IDE support
-  - Easy local development setup with Makefile commands
-  - Automatic retry logic with exponential backoff for resilience
-
-- **Model Evaluation Framework**
-  - Automated metric-based evaluation of model outputs
-  - Integration with Langfuse for trace analysis
-  - Detailed JSON reports with success/failure metrics
-  - Interactive command-line interface
-  - Customizable evaluation metrics
-
-## 🚀 Quick Start (Windows)
-
-### 1. Install & Configure Ollama
-1. **Install Ollama**: Download from [ollama.com](https://ollama.com) and install it.
-2. **Pull Model**: Open PowerShell or Command Prompt and run:
-   ```bash
-   ollama pull llama3
-   ```
-3. **Verify**: Ensure the model is ready (Ollama should be running in the system tray).
-
-### 2. Project Setup
-1. **Clone & Enter**:
-   ```bash
-   git clone <repository-url>
-   cd <project-directory>
-   ```
-2. **Virtual Env**:
-   ```bash
-   python -m venv venv
-   .\venv\Scripts\activate
-   ```
-3. **Install Dependencies**:
-   ```bash
-   pip install -e .
-   ```
-4. **Environment Variables**:
-   ```bash
-   copy .env.example .env
-   ```
-   *Note: The default `.env` is already configured for local Ollama (`LLM_PROVIDER=ollama`).*
-
-### 3. Run Application
-Run the backend server:
-```bash
-uvicorn app.main:app --reload
-```
-
-### 4. Test Endpoints
-Open your browser to [http://localhost:8000/docs](http://localhost:8000/docs) to use Swagger UI.
-
-**Test the following endpoints:**
-- **Regular Chat**: `POST /api/v1/chatbot/chat`
-- **Streaming Chat**: `POST /api/v1/chatbot/chat/stream`
-
-### Database Note
-This project uses MongoDB. Ensure you have a local MongoDB instance running if you need persistence, or configure `MONGODB_URL` in `.env`.
-
-- FastAPI application
-- PostgreSQL database
-- Prometheus for metrics collection
-- Grafana for metrics visualization
-- Pre-configured dashboards for:
-  - API performance metrics
-  - Rate limiting statistics
-  - Database performance
-  - System resource usage
-
-## 📊 Model Evaluation
-
-The project includes a robust evaluation framework for measuring and tracking model performance over time. The evaluator automatically fetches traces from Langfuse, applies evaluation metrics, and generates detailed reports.
-
-### Running Evaluations
-
-You can run evaluations with different options using the provided Makefile commands:
+## 📂 Project Structure
 
 ```bash
-# Interactive mode with step-by-step prompts
-make eval [ENV=development|staging|production]
-
-# Quick mode with default settings (no prompts)
-make eval-quick [ENV=development|staging|production]
-
-# Evaluation without report generation
-make eval-no-report [ENV=development|staging|production]
-```
-
-### Evaluation Features
-
-- **Interactive CLI**: User-friendly interface with colored output and progress bars
-- **Flexible Configuration**: Set default values or customize at runtime
-- **Detailed Reports**: JSON reports with comprehensive metrics including:
-  - Overall success rate
-  - Metric-specific performance
-  - Duration and timing information
-  - Trace-level success/failure details
-
-### Customizing Metrics
-
-Evaluation metrics are defined in `evals/metrics/prompts/` as markdown files:
-
-1. Create a new markdown file (e.g., `my_metric.md`) in the prompts directory
-2. Define the evaluation criteria and scoring logic
-3. The evaluator will automatically discover and apply your new metric
-
-### Viewing Reports
-
-Reports are automatically generated in the `evals/reports/` directory with timestamps in the filename:
-
-```
-evals/reports/evaluation_report_YYYYMMDD_HHMMSS.json
-```
-
-Each report includes:
-
-- High-level statistics (total trace count, success rate, etc.)
-- Per-metric performance metrics
-- Detailed trace-level information for debugging
-
-## 🔧 Configuration
-
-The application uses a flexible configuration system with environment-specific settings:
-
-- `.env.development` - Local development settings
-- `.env.staging` - Staging environment settings
-- `.env.production` - Production environment settings
-
-### Environment Variables
-
-Key configuration variables include:
-
-```bash
-# Application
-APP_ENV=development
-PROJECT_NAME="FastAPI LangGraph Agent"
-DEBUG=true
-
-# Database
-POSTGRES_HOST=localhost
-POSTGRES_PORT=5432
-POSTGRES_DB=mydb
-POSTGRES_USER=postgres
-POSTGRES_PASSWORD=postgres
-
-# LLM Configuration
-OPENAI_API_KEY=your_openai_api_key
-DEFAULT_LLM_MODEL=gpt-4o
-DEFAULT_LLM_TEMPERATURE=0.7
-MAX_TOKENS=4096
-
-# Long-Term Memory
-LONG_TERM_MEMORY_COLLECTION_NAME=agent_memories
-LONG_TERM_MEMORY_MODEL=gpt-4o-mini
-LONG_TERM_MEMORY_EMBEDDER_MODEL=text-embedding-3-small
-
-# Observability
-LANGFUSE_PUBLIC_KEY=your_public_key
-LANGFUSE_SECRET_KEY=your_secret_key
-LANGFUSE_HOST=https://cloud.langfuse.com
-
-# Security
-SECRET_KEY=your_secret_key_here
-ACCESS_TOKEN_EXPIRE_MINUTES=30
-
-# Rate Limiting
-RATE_LIMIT_ENABLED=true
-```
-
-## 🧠 Long-Term Memory
-
-The application includes a sophisticated long-term memory system powered by Mem0 and FAISS:
-
-### Features
-
-- **Semantic Memory Storage**: Stores and retrieves memories based on semantic similarity
-- **User-Specific Memories**: Each user has their own isolated memory space
-- **Automatic Memory Management**: Memories are automatically extracted, stored, and retrieved
-- **Vector Search**: Uses pgvector for efficient similarity search
-- **Configurable Models**: Separate models for memory processing and embeddings
-
-### How It Works
-
-1. **Memory Addition**: During conversations, important information is automatically extracted and stored
-2. **Memory Retrieval**: Relevant memories are retrieved based on conversation context
-3. **Memory Search**: Semantic search finds related memories across conversations
-4. **Memory Updates**: Existing memories can be updated as new information becomes available
-
-## 🤖 LLM Service
-
-The LLM service provides robust, production-ready language model interactions with automatic retry logic and multiple model support.
-
-### Features
-
-- **Multiple Model Support**: Pre-configured support for GPT-4o, GPT-4o-mini, GPT-5, and GPT-5 variants
-- **Automatic Retries**: Uses tenacity for exponential backoff retry logic
-- **Reasoning Configuration**: GPT-5 models support configurable reasoning effort levels
-- **Environment-Specific Tuning**: Different parameters for development vs production
-- **Fallback Mechanisms**: Graceful degradation when primary models fail
-
-### Supported Models
-
-| Model       | Use Case                | Reasoning Effort |
-| ----------- | ----------------------- | ---------------- |
-| gpt-5       | Complex reasoning tasks | Medium           |
-| gpt-5-mini  | Balanced performance    | Low              |
-| gpt-5-nano  | Fast responses          | Minimal          |
-| gpt-4o      | Production workloads    | N/A              |
-| gpt-4o-mini | Cost-effective tasks    | N/A              |
-
-### Retry Configuration
-
-- Automatically retries on API timeouts, rate limits, and temporary errors
-- **Max Attempts**: 3
-- **Wait Strategy**: Exponential backoff (1s, 2s, 4s)
-- **Logging**: All retry attempts are logged with context
-
-## 📝 Advanced Logging
-
-The application uses structlog for structured, contextual logging with automatic request tracking.
-
-### Features
-
-- **Structured Logging**: All logs are structured with consistent fields
-- **Request Context**: Automatic binding of request_id, session_id, and user_id
-- **Environment-Specific Formatting**: JSON in production, colored console in development
-- **Performance Tracking**: Automatic logging of request duration and status
-- **Exception Tracking**: Full stack traces with context preservation
-
-### Logging Context Middleware
-
-Every request automatically gets:
-- Unique request ID
-- Session ID (if authenticated)
-- User ID (if authenticated)
-- Request path and method
-- Response status and duration
-
-### Log Format Standards
-
-- **Event Names**: lowercase_with_underscores
-- **No F-Strings**: Pass variables as kwargs for proper filtering
-- **Context Binding**: Always include relevant IDs and context
-- **Appropriate Levels**: debug, info, warning, error, exception
-
-## ⚡ Performance Optimizations
-
-### uvloop Integration
-
-The application uses uvloop for enhanced async performance (automatically enabled via Makefile):
-
-**Performance Improvements**:
-- 2-4x faster asyncio operations
-- Lower latency for I/O-bound tasks
-- Better connection pool management
-- Reduced CPU usage for concurrent requests
-
-### Connection Pooling
-
-- **Database**: Async connection pooling with configurable pool size
-- **LangGraph Checkpointing**: Shared connection pool for state persistence
-- **Redis** (optional): Connection pool for caching
-
-### Caching Strategy
-
-- Only successful responses are cached
-- Configurable TTL based on data volatility
-- Cache invalidation on updates
-- Supports Redis or in-memory caching
-
-## 🔌 API Reference
-
-### Authentication Endpoints
-
-- `POST /api/v1/auth/register` - Register a new user
-- `POST /api/v1/auth/login` - Authenticate and receive JWT token
-- `POST /api/v1/auth/logout` - Logout and invalidate session
-
-### Chat Endpoints
-
-- `POST /api/v1/chatbot/chat` - Send message and receive response
-- `POST /api/v1/chatbot/chat/stream` - Send message with streaming response
-- `GET /api/v1/chatbot/history` - Get conversation history
-- `DELETE /api/v1/chatbot/history` - Clear chat history
-
-### Health & Monitoring
-
-- `GET /health` - Health check with database status
-- `GET /metrics` - Prometheus metrics endpoint
-
-For detailed API documentation, visit `/docs` (Swagger UI) or `/redoc` (ReDoc) when running the application.
-
-## 📚 Project Structure
-
-```
-whatsapp-food-order/
 ├── app/
-│   ├── api/
-│   │   └── v1/
-│   │       ├── auth.py              # Authentication endpoints
-│   │       ├── chatbot.py           # Chat endpoints
-│   │       └── api.py               # API router aggregation
-│   ├── core/
-│   │   ├── config.py                # Configuration management
-│   │   ├── logging.py               # Logging setup
-│   │   ├── metrics.py               # Prometheus metrics
-│   │   ├── middleware.py            # Custom middleware
-│   │   ├── limiter.py               # Rate limiting
-│   │   ├── langgraph/
-│   │   │   ├── graph.py             # LangGraph agent
-│   │   │   └── tools.py             # Agent tools
-│   │   └── prompts/
-│   │       ├── __init__.py          # Prompt loader
-│   │       └── system.md            # System prompts
-│   ├── models/
-│   │   ├── user.py                  # User model
-│   │   └── session.py               # Session model
-│   ├── schemas/
-│   │   ├── auth.py                  # Auth schemas
-│   │   ├── chat.py                  # Chat schemas
-│   │   └── graph.py                 # Graph state schemas
-│   ├── services/
-│   │   ├── database.py              # Database service
-│   │   └── llm.py                   # LLM service with retries
-│   ├── utils/
-│   │   ├── __init__.py
-│   │   └── graph.py                 # Graph utility functions
-│   └── main.py                      # Application entry point
-├── evals/
-│   ├── evaluator.py                 # Evaluation logic
-│   ├── main.py                      # Evaluation CLI
-│   ├── metrics/
-│   │   └── prompts/                 # Evaluation metric definitions
-│   └── reports/                     # Generated evaluation reports
-├── grafana/                         # Grafana dashboards
-├── prometheus/                      # Prometheus configuration
-├── scripts/                         # Utility scripts
-├── docker-compose.yml               # Docker Compose configuration
-├── Dockerfile                       # Application Docker image
-├── Makefile                         # Development commands
-├── pyproject.toml                   # Python dependencies
-├── pyproject.toml                   # Python dependencies
-└── README.md                        # This file
+│   ├── api/          # FastAPI Routes (/chat/stream, /health)
+│   ├── core/         # Config, Logging, LangGraph Definition
+│   ├── services/     # LLM (Ollama/Transformers), Database, Memory
+│   └── tools/        # RAG Tool, User Data Tool
+├── data/
+│   └── company_docs/ # Place your Markdown/PDF policies here
+├── training/         # LLaMA 3 Fine-Tuning Scripts (LoRA/QLoRA)
+├── static/           # Web Chat Interface (HTML/CSS/JS)
+├── tests/            # Pytest Suite
+└── docker-compose.yml
+```
+
+---
+
+## ⚡ Quick Start
+
+### 1. Prerequisites
+*   Python 3.10+
+*   [Ollama](https://ollama.com/) installed and running (`ollama serve`).
+*   MongoDB running locally or in Docker.
+
+### 2. Installation
+```bash
+# Clone the repo
+git clone https://github.com/your-repo/dilshaj-ai-agent.git
+cd dilshaj-ai-agent
+
+# Create Virtual Environment
+python -m venv venv
+source venv/bin/activate  # Windows: venv\Scripts\activate
+
+# Install Dependencies
+pip install -r requirements.txt
+pip install -e .
+```
+
+### 3. Configuration
+Copy `.env.example` to `.env` and configure:
+```ini
+# .env
+OLLAMA_BASE_URL=http://localhost:11434
+OLLAMA_MODEL=dilshaj-ai
+MONGO_URI=mongodb://localhost:27017
+MONGO_DB_NAME=dilshaj_db
+```
+
+### 4. Populate Data (Optional)
+This script creates dummy users and indexes your `data/company_docs`.
+```bash
+python scripts/populate_db.py
+python scripts/reindex_rag.py
+```
+
+### 5. Run the Application
+```bash
+# Start backend server
+python -m uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+```
+Visit **http://localhost:8000/static/index.html** to chat!
+
+---
+
+## 🎓 Training (Fine-Tuning)
+
+You can fine-tune LLaMA on your own data using the `training/` module.
+
+1.  Place your dataset (JSON) in `training/`.
+2.  Run:
+    ```bash
+    python training/train_lora.py --dataset_path "my_data.json" --new_model_name "my-custom-model"
+    ```
+3.  Deploy: Set `USE_FINETUNED_MODEL=true` in `.env`.
+
+---
+
+## 🐳 Docker Deployment
+
+To run everything in containers:
+```bash
+docker-compose up --build
+```
+
+---
+
+## ☁️ AWS EC2 Deployment (GPU)
+
+See `DEPLOYMENT_EC2_GPU.md` for detailed instructions on running with NVIDIA GPUs (T4/A10G).
+
+---
+
+## 📝 License
+Proprietary / MIT (Edit as needed).
+
+```
+fastapi-langgraph-agent-production-ready-template-master/
+├── app/                        # 🧠 The Main Application Code
+│   ├── api/                    # 🌐 REST API Endpoints (FastAPI)
+│   │   └── v1/                 # Version 1 API routes
+│   │       ├── api.py          # Main Router (collects all routes)
+│   │       └── chatbot.py      # The /chat/stream endpoint (Frontend talks to this!)
+│   ├── core/                   # ⚙️ Core Configuration & Logic
+│   │   ├── config.py           # Application Settings (reads .env)
+│   │   ├── logging.py          # Custom Logger Setup
+│   │   ├── langgraph/          # 🤖 The AI Brain (LangGraph)
+│   │   │   ├── graph.py        # Defines the Workflow (User -> Tool -> Agent)
+│   │   │   └── state.py        # Defines what data the agent remembers per turn
+│   │   └── prompts/            # 📝 AI Prompts (System Instructions)
+│   │       └── system.md       # The "Persona" of the AI (You are Dilshaj AI...)
+│   ├── services/               # 🔌 Integrations with External Services
+│   │   ├── llm.py              # Manages Ollama / Local Fine-Tuned Model
+│   │   ├── database.py         # Manages MongoDB Connection
+│   │   └── memory.py           # Handles Conversation History (Checkpointer)
+│   ├── tools/                  # 🛠️ capabilities (The "Hands" of the AI)
+│   │   ├── rag/                # Retrieval Augmented Generation (Company Docs)
+│   │   └── user_details/       # MongoDB User/Payment Lookup Tool
+│   └── main.py                 # 🚀 Entry Point (Starts the FastAPI server)
+│
+├── data/                       # 🗄️ Local Data Storage
+│   └── company_docs/           # 📄 Place your PDFs/MDs here (Policies, Info)
+│       ├── refund_policy.md
+│       └── ...
+│
+├── static/                     # 🎨 Frontend (HTML/JS/CSS)
+│   ├── index.html              # The Chat Interface
+│   ├── style.css
+│   └── script.js
+│
+├── training/                   # 🎓 Fine-Tuning Module
+│   ├── train_lora.py           # Script to train custom LLaMA models
+│   └── requirements.txt        # Dependencies for training
+│
+├── tests/                      # 🧪 Automated Tests
+│   ├── test_agent_final.py     # Tests the full agent flow
+│   └── test_rag_file.py        # Tests document retrieval
+│
+├── scripts/                    # 📜 Utility Scripts
+│   ├── populate_db.py          # Fills MongoDB with dummy user data
+│   └── reindex_rag.py          # Rebuilds the FAISS index from 'data/company_docs'
+│
+├── .env                        # 🔑 Environment Variables (Secrets, Configs)
+├── docker-compose.yml          # 🐳 Container Orchestration
+├── pyproject.toml              # 📦 Python Dependencies (Poetry style)
+├── Makefile                    # ⚡ Shortcuts (make run, make test)
+└── DEPLOYMENT_EC2_GPU.md       # 📖 Deployment Guide for AWS
 ```
 
 ## 🛡️ Security
