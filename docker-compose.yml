@@ -10,13 +10,18 @@ services:
     restart: always
     networks:
       - agent-network
+    healthcheck:
+      test: echo 'db.runCommand("ping").ok' | mongosh localhost:27017/test --quiet
+      interval: 10s
+      timeout: 10s
+      retries: 5
 
   # Backend API
   app:
     build:
       context: .
       args:
-        APP_ENV: ${APP_ENV:-development}
+        APP_ENV: ${APP_ENV:-production}
     ports:
       - "8000:8000"
     volumes:
@@ -26,11 +31,15 @@ services:
     env_file:
       - .env
     environment:
-      - APP_ENV=${APP_ENV:-development}
+      - APP_ENV=${APP_ENV:-production}
       - MONGO_URI=mongodb://mongodb:27017
+      - OLLAMA_BASE_URL=${OLLAMA_BASE_URL:-http://host.docker.internal:11434}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     depends_on:
-      - mongodb
-    restart: on-failure
+      mongodb:
+        condition: service_healthy
+    restart: always
     networks:
       - agent-network
       - monitoring

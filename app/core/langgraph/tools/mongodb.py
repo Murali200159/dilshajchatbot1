@@ -11,7 +11,7 @@ async def user_payment_tool(query_type: str, user_id: str = None, transaction_id
     """Fetch user or payment data from the database.
 
     Use this tool when you need to:
-    - Check payment status
+    - Check payment status (Keywords: payment, transaction, fee, invoice, status)
     - Get user details
     - Verify transaction history
     

@@ -12,6 +12,7 @@ async def company_docs_tool(query: str) -> str:
 
     Use this tool to answer questions about:
     - Company policies (refund, privacy, HR, etc.)
+    - Keywords: policy, leave, refund, hr, holiday, working hours
     - General company facts (employee count, office location, contact info)
     - Product documentation and company handbook
     - FAQ and standard procedures

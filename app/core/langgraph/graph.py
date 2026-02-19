@@ -120,6 +120,14 @@ class LangGraphAgent:
         """Chat node for processing messages through the LLM."""
         messages = prepare_messages(state["messages"], llm=self.llm_service.get_llm())
         
+        # Log detected intent based on message content
+        last_msg_content = str(messages[-1]["content"])
+        logger.info(
+            "chat_node_intent_detection", 
+            message_snippet=last_msg_content[:50],
+            message_length=len(last_msg_content)
+        )
+        
         # Load system prompt with memory context
         user_id = state.get("user_id", "guest_user")
         memories = await memory_service.search(query=str(messages[-1]["content"]), user_id=user_id)
@@ -136,9 +144,11 @@ class LangGraphAgent:
                     tool_results.append(f"Output from tool: {msg.get('content')}")
         
         if tool_results:
-            retrieved_context = "CRITICAL METADATA FROM INTERNAL TOOLS:\n" + "\n\n".join(tool_results)
+            retrieved_context = "Verified Internal Data:\n" + "\n\n".join(tool_results)
+            logger.info("context_injection", context_source="tools", context_length=len(retrieved_context))
         else:
             retrieved_context = "No internal document context retrieved yet. You should use company_docs_tool if you need company-specific info."
+            logger.debug("context_injection", context_source="none")
         
         system_prompt = await load_system_prompt(
             long_term_memory=str(memories),
@@ -179,6 +189,7 @@ class LangGraphAgent:
         for tool_call in last_message.tool_calls:
             tool = self.tools_by_name.get(tool_call["name"])
             if tool:
+                logger.info("executing_tool", tool_name=tool_call["name"])
                 observation = await tool.ainvoke(tool_call["args"])
                 tool_outputs.append(
                     ToolMessage(

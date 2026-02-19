@@ -1,4 +1,8 @@
+<<<<<<< HEAD
  #Dilshaj Infotech AI Assistant
+=======
+# Dilshaj Infotech AI Assistant
+>>>>>>> fbfe22fd (Added antigravity modifications and EC2 updates)
 
 A production-ready, single-agent conversational AI system designed to handle company inquiries, user data retrieval, and general chat. Powered by **LLaMA 3 (via Ollama)**, **LangGraph**, **FastAPI**, and **MongoDB**.
 
@@ -40,6 +44,7 @@ A production-ready, single-agent conversational AI system designed to handle com
 ├── static/           # Web Chat Interface (HTML/CSS/JS)
 ├── tests/            # Pytest Suite
 └── docker-compose.yml
+<<<<<<< HEAD
 ```
 
 ---
@@ -174,26 +179,87 @@ fastapi-langgraph-agent-production-ready-template-master/
 ├── pyproject.toml              # 📦 Python Dependencies (Poetry style)
 ├── Makefile                    # ⚡ Shortcuts (make run, make test)
 └── DEPLOYMENT_EC2_GPU.md       # 📖 Deployment Guide for AWS
+=======
+>>>>>>> fbfe22fd (Added antigravity modifications and EC2 updates)
 ```
 
-## 🛡️ Security
+---
 
-For security concerns, please review our [Security Policy](SECURITY.md).
+## ⚡ Quick Start
 
-## 📄 License
+### 1. Prerequisites
+*   Python 3.10+
+*   [Ollama](https://ollama.com/) installed and running (`ollama serve`).
+*   MongoDB running locally or in Docker.
 
-This project is licensed under the terms specified in the [LICENSE](LICENSE) file.
+### 2. Installation
+```bash
+# Clone the repo
+git clone https://github.com/your-repo/dilshaj-ai-agent.git
+cd dilshaj-ai-agent
 
-## 🤝 Contributing
+# Create Virtual Environment
+python -m venv venv
+source venv/bin/activate  # Windows: venv\Scripts\activate
 
-Contributions are welcome! Please ensure:
+# Install Dependencies
+pip install -r requirements.txt
+pip install -e .
+```
 
-1. Code follows the project's coding standards
-2. All tests pass
-3. New features include appropriate tests
-4. Documentation is updated
-5. Commit messages follow conventional commits format
+### 3. Configuration
+Copy `.env.example` to `.env` and configure:
+```ini
+# .env
+OLLAMA_BASE_URL=http://localhost:11434
+OLLAMA_MODEL=dilshaj-ai
+MONGO_URI=mongodb://localhost:27017
+MONGO_DB_NAME=dilshaj_db
+```
 
-## 📞 Support
+### 4. Populate Data (Optional)
+This script creates dummy users and indexes your `data/company_docs`.
+```bash
+python scripts/populate_db.py
+python scripts/reindex_rag.py
+```
 
-For issues, questions, or contributions, please open an issue on the project repository
+### 5. Run the Application
+```bash
+# Start backend server
+python -m uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+```
+Visit **http://localhost:8000/static/index.html** to chat!
+
+---
+
+## 🎓 Training (Fine-Tuning)
+
+You can fine-tune LLaMA on your own data using the `training/` module.
+
+1.  Place your dataset (JSON) in `training/`.
+2.  Run:
+    ```bash
+    python training/train_lora.py --dataset_path "my_data.json" --new_model_name "my-custom-model"
+    ```
+3.  Deploy: Set `USE_FINETUNED_MODEL=true` in `.env`.
+
+---
+
+## 🐳 Docker Deployment
+
+To run everything in containers:
+```bash
+docker-compose up --build
+```
+
+---
+
+## ☁️ AWS EC2 Deployment (GPU)
+
+See `DEPLOYMENT_EC2_GPU.md` for detailed instructions on running with NVIDIA GPUs (T4/A10G).
+
+---
+
+## 📝 License
+Proprietary / MIT (Edit as needed).

@@ -31,27 +31,91 @@ class LLMService:
 
         # Load Ollama-specific configuration with requested defaults
         self.base_url = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
-        self.model = os.getenv("OLLAMA_MODEL", "dilshaj-ai")
-        self.temperature = float(os.getenv("OLLAMA_TEMPERATURE", "0.3"))
+        
+        # Determine which model to use based on configuration
+        use_finetuned = os.getenv("USE_FINETUNED_MODEL", "false").lower() == "true"
+        finetuned_path = os.getenv("FINETUNED_MODEL_PATH")
+        default_model = os.getenv("OLLAMA_MODEL", "dilshaj-ai")
+        self.temperature = settings.DEFAULT_LLM_TEMPERATURE
+        
+        if use_finetuned and finetuned_path:
+            # Use local HuggingFace model pipeline (GPU/CPU)
+            self.model = finetuned_path
+            logger.info("loading_local_model", path=self.model)
+            
+            try:
+                # Lazy import to avoid heavy dependencies if not using local model
+                from transformers import AutoModelForCausalLM, AutoTokenizer, pipeline
+                from langchain_huggingface import ChatHuggingFace, HuggingFacePipeline
+                import torch
 
-        try:
-            self._llm = ChatOllama(
-                base_url=self.base_url,
-                model=self.model,
-                temperature=self.temperature,
-                timeout=settings.LLM_TIMEOUT,
-                # Keep alive to reduce model loading time between requests
-                keep_alive="5m"
-            )
-            logger.info(
-                "llm_service_initialized",
-                provider="ollama",
-                model=self.model,
-                base_url=self.base_url,
-                temperature=self.temperature
-            )
-        except Exception as e:
-            logger.critical("llm_service_initialization_failed", error=str(e), hint="Check if Ollama is running")
+                # Determine device and quantization
+                device_map = "auto"
+                quantization_config = None
+                
+                # Check for CUDA availability
+                if torch.cuda.is_available():
+                    from transformers import BitsAndBytesConfig
+                    quantization_config = BitsAndBytesConfig(
+                        load_in_4bit=True,
+                        bnb_4bit_compute_dtype=torch.float16,
+                        bnb_4bit_quant_type="nf4"
+                    )
+                
+                tokenizer = AutoTokenizer.from_pretrained(self.model)
+                model = AutoModelForCausalLM.from_pretrained(
+                    self.model,
+                    device_map=device_map,
+                    quantization_config=quantization_config,
+                    trust_remote_code=True
+                )
+                
+                pipe = pipeline(
+                    "text-generation",
+                    model=model,
+                    tokenizer=tokenizer,
+                    max_new_tokens=2048,
+                    temperature=self.temperature,
+                    top_p=0.9,
+                    repetition_penalty=1.1
+                )
+                
+                hf_pipeline = HuggingFacePipeline(pipeline=pipe)
+                self._llm = ChatHuggingFace(llm=hf_pipeline)
+                
+                logger.info(
+                    "llm_service_initialized",
+                    provider="local_transformers",
+                    model=self.model,
+                    device="cuda" if torch.cuda.is_available() else "cpu"
+                )
+
+            except ImportError as e:
+                logger.critical("missing_dependencies_for_local_llm", error=str(e), hint="Install transformers, torch, accelerate, bitsandbytes")
+                raise
+            except Exception as e:
+                logger.critical("local_llm_initialization_failed", error=str(e))
+                raise
+
+        else:
+            # Fallback to standard Ollama service
+            self.model = default_model
+            try:
+                self._llm = ChatOllama(
+                    base_url=self.base_url,
+                    model=self.model,
+                    temperature=self.temperature,
+                    timeout=settings.LLM_TIMEOUT,
+                    keep_alive="5m"
+                )
+                logger.info(
+                    "llm_service_initialized",
+                    provider="ollama",
+                    model=self.model,
+                    base_url=self.base_url
+                )
+            except Exception as e:
+                logger.critical("ollama_initialization_failed", error=str(e), hint="Check if Ollama is running")
 
     @retry(
         stop=stop_after_attempt(settings.LLM_MAX_RETRIES),
