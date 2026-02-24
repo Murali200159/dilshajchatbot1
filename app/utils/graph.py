@@ -186,27 +186,40 @@ def prepare_messages(messages: list[Message], llm: BaseChatModel = None, system_
         trimmed_messages = dump_messages(messages, for_llm=True)
     else:
         try:
+            import tiktoken
+            encoding = tiktoken.get_encoding("cl100k_base")
+            
+            def token_counter(msgs):
+                # Simple token counter for trimming
+                total = 0
+                for m in msgs:
+                    # Handle both dicts and message objects
+                    content = m.get("content", "") if isinstance(m, dict) else getattr(m, "content", "")
+                    total += len(encoding.encode(str(content))) + 4
+                return total
+            
             trimmed_messages = _trim_messages(
                 dump_messages(messages, for_llm=True),
                 strategy="last",
-                token_counter=llm,
+                token_counter=token_counter,
                 max_tokens=settings.MAX_TOKENS,
                 start_on="human",
                 include_system=False,
                 allow_partial=False,
             )
-        except ValueError as e:
-            # Handle unrecognized content blocks (e.g., reasoning blocks from GPT-5)
-            if "Unrecognized content block type" in str(e):
-                logger.warning(
-                    "token_counting_failed_skipping_trim",
-                    error=str(e),
-                    message_count=len(messages),
-                )
-                # Skip trimming and return all messages
-                trimmed_messages = dump_messages(messages, for_llm=True)
-            else:
+        except (ImportError, ValueError) as e:
+            # Fallback if tiktoken is missing or if other errors occur
+            if isinstance(e, ValueError) and "Unrecognized content block type" not in str(e):
                 raise
+            
+            logger.warning(
+                "token_counting_failed_skipping_trim",
+                error=str(e),
+                message_count=len(messages),
+            )
+            # Skip trimming and return all messages
+            trimmed_messages = dump_messages(messages, for_llm=True)
+
 
     if system_prompt:
         return [{"role": "system", "content": system_prompt}] + dump_messages(trimmed_messages, for_llm=True)

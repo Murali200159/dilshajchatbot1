@@ -106,6 +106,29 @@ class LangGraphAgent:
 
         return self._graph
 
+    async def clear_chat_history(self, session_id: str) -> None:
+        """Clear the history for a specific session."""
+        if self._graph is None:
+            self._graph = await self.create_graph()
+
+        try:
+            # MemorySaver holds state in memory. To "clear", we'd ideally 
+            # delete the checkpoint. If adelete isn't available, we log it.
+            if hasattr(self._graph, "adelete"):
+                await self._graph.adelete(
+                    config={"configurable": {"thread_id": session_id}}
+                )
+            elif hasattr(self._graph, "checkpointer") and hasattr(self._graph.checkpointer, "adelete"):
+                 await self._graph.checkpointer.adelete(
+                    config={"configurable": {"thread_id": session_id}}
+                )
+            else:
+                logger.warning("clear_chat_history_direct_delete_not_supported")
+            
+            logger.info("chat_history_cleared", session_id=session_id)
+        except Exception as e:
+            logger.error("clear_chat_history_failed", error=str(e))
+
     async def _router_node(self, state: GraphState, config: RunnableConfig):
         """Router node: decides if tool(s) or direct response is needed."""
         messages = prepare_messages(state["messages"], llm=self.llm_service.get_llm())
@@ -215,11 +238,13 @@ class LangGraphAgent:
         config = {"configurable": {"thread_id": session_id}}
 
         async for event in self._graph.astream(inputs, config=config, stream_mode="messages"):
-            # We only stream the final LLM node's content to the user
-            if isinstance(event[0], AIMessage) and event[0].content:
+            # Normalize event format (some versions return (message, metadata))
+            msg = event[0] if isinstance(event, (list, tuple)) else event
+            
+            if isinstance(msg, AIMessage) and msg.content:
                 # Check if this message has tool calls - if so, it's from the router, don't stream to user yet
-                if not (hasattr(event[0], "tool_calls") and event[0].tool_calls):
-                    yield event[0].content
+                if not (hasattr(msg, "tool_calls") and msg.tool_calls):
+                    yield msg.content
 
     async def get_chat_history(self, session_id: str):
         """Retrieve chat history for a session."""
