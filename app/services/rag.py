@@ -4,7 +4,7 @@ from typing import List, Optional
 
 from langchain_community.document_loaders import DirectoryLoader, TextLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
-from langchain_community.embeddings import OllamaEmbeddings
+from langchain_ollama import OllamaEmbeddings
 from langchain_community.vectorstores import FAISS
 from langchain_core.documents import Document
 from langchain_core.embeddings import Embeddings
@@ -12,42 +12,35 @@ from langchain_core.embeddings import Embeddings
 from app.core.config import settings
 from app.core.logging import logger
 
-class MockEmbeddings(Embeddings):
-    """Mock embeddings for testing without an API key."""
-    def embed_documents(self, texts: List[str]) -> List[List[float]]:
-        # Return a fixed size dummy vector for each text
-        return [[0.1] * 1536 for _ in texts]
 
+class MockEmbeddings(Embeddings):
+    """Fallback mock embeddings if Ollama is unavailable."""
+    def embed_documents(self, texts: List[str]) -> List[List[float]]:
+        return [[0.1] * 768 for _ in texts]
     def embed_query(self, text: str) -> List[float]:
-        return [0.1] * 1536
+        return [0.1] * 768
+
 
 class RAGService:
-    """Service for handling Retrieval Augmented Generation from local files."""
+    """Service for Retrieval Augmented Generation from local company docs."""
 
     def __init__(self, docs_dir: str = "data/company_docs", index_path: str = "data/faiss_index"):
         self.docs_dir = docs_dir
         self.index_path = index_path
         self.vector_store: Optional[FAISS] = None
-        
-        # Determine which embeddings to use
-        embed_model = os.getenv("OLLAMA_EMBED_MODEL", settings.LONG_TERM_MEMORY_EMBEDDER_MODEL)
-        
+
+        # Ollama embeddings (nomic-embed-text)
+        embed_model = os.getenv("OLLAMA_EMBED_MODEL", "nomic-embed-text")
         try:
             self.embeddings = OllamaEmbeddings(
                 model=embed_model,
                 base_url=settings.LLM_BASE_URL,
             )
-            logger.info(
-                "rag_embeddings_initialized",
-                provider="ollama",
-                model=embed_model
-            )
+            logger.info("rag_embeddings_initialized", provider="ollama", model=embed_model)
         except Exception as e:
             logger.error("rag_embeddings_init_failed", error=str(e))
             self.embeddings = MockEmbeddings()
 
-        # Initial loading is fine as sync in constructor, 
-        # but we'll provide an async init for runtime.
         self._initialize_vector_store_sync()
 
     def _initialize_vector_store_sync(self, force_rebuild: bool = False):

@@ -166,6 +166,12 @@ document.addEventListener('DOMContentLoaded', () => {
         // 2. Add Loading Indicator
         const loadingEl = addLoadingIndicator();
 
+        // Show a "thinking" warning after 15 seconds for slow models
+        let slowWarningEl = null;
+        const slowTimer = setTimeout(() => {
+            slowWarningEl = addStatusMessage("⏳ AI is thinking... (llama3.1 on CPU can take 1-3 minutes, please wait)");
+        }, 15000);
+
         try {
             // 3. Prepare Payload
             const payload = {
@@ -186,7 +192,9 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             // Remove loading indicator immediately as we start streaming
+            clearTimeout(slowTimer);
             removeLoadingIndicator(loadingEl);
+            if (slowWarningEl) slowWarningEl.remove();
 
             // 4. Handle Streaming Response
             // Create a placeholder message for the assistant
@@ -234,9 +242,11 @@ document.addEventListener('DOMContentLoaded', () => {
             messages.push({ role: 'assistant', content: fullText });
 
         } catch (error) {
+            clearTimeout(slowTimer);
             console.error(error);
             removeLoadingIndicator(loadingEl);
-            addMessageToUI("Sorry, I'm having trouble connecting right now.", 'assistant');
+            if (slowWarningEl) slowWarningEl.remove();
+            addMessageToUI("Sorry, I'm having trouble connecting right now. Please try again.", 'assistant');
         } finally {
             userInput.disabled = false;
             userInput.focus();
@@ -313,6 +323,16 @@ document.addEventListener('DOMContentLoaded', () => {
             const el = document.getElementById(wrapperElement);
             if (el) el.remove();
         }
+    }
+
+    function addStatusMessage(text) {
+        const div = document.createElement('div');
+        div.classList.add('status-message');
+        div.style.cssText = 'text-align:center;font-size:12px;color:#888;padding:6px 12px;font-style:italic;';
+        div.innerText = text;
+        chatMessages.appendChild(div);
+        scrollToBottom();
+        return div;
     }
 
     function scrollToBottom() {

@@ -1,0 +1,734 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dilshaj Infotech — Chatbot Architecture</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap');
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: #060b14;
+            color: #e2e8f0;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 40px 20px;
+        }
+
+        /* ── Title ── */
+        .title-block {
+            text-align: center;
+            margin-bottom: 48px;
+        }
+
+        .title-block h1 {
+            font-size: 26px;
+            font-weight: 800;
+            background: linear-gradient(135deg, #60a5fa, #a78bfa, #34d399);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            letter-spacing: -0.5px;
+        }
+
+        .title-block p {
+            margin-top: 8px;
+            font-size: 13px;
+            color: #64748b;
+            font-weight: 400;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+        }
+
+        /* ── Main canvas ── */
+        .canvas {
+            width: 100%;
+            max-width: 1100px;
+            display: flex;
+            flex-direction: column;
+            gap: 0;
+            position: relative;
+        }
+
+        /* ── Layer row ── */
+        .layer {
+            display: flex;
+            align-items: stretch;
+            gap: 16px;
+            padding: 20px 0;
+            position: relative;
+        }
+
+        .layer-label {
+            writing-mode: vertical-rl;
+            text-orientation: mixed;
+            transform: rotate(180deg);
+            font-size: 10px;
+            font-weight: 600;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            color: #475569;
+            min-width: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-right: 1px solid #1e293b;
+            padding-right: 12px;
+            flex-shrink: 0;
+        }
+
+        .layer-content {
+            flex: 1;
+            display: flex;
+            gap: 14px;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* ── Box ── */
+        .box {
+            border: 1px solid;
+            border-radius: 14px;
+            padding: 16px 20px;
+            position: relative;
+            cursor: default;
+            transition: transform 0.2s, box-shadow 0.2s;
+            backdrop-filter: blur(4px);
+        }
+
+        .box:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 16px 40px rgba(0, 0, 0, 0.5);
+        }
+
+        .box-title {
+            font-size: 13px;
+            font-weight: 700;
+            margin-bottom: 6px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .box-sub {
+            font-size: 11px;
+            color: #94a3b8;
+            line-height: 1.6;
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .box-badge {
+            font-size: 9px;
+            font-weight: 600;
+            padding: 2px 7px;
+            border-radius: 20px;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+        }
+
+        /* ── Color themes ── */
+        .blue {
+            border-color: #1e40af55;
+            background: #0f172a;
+        }
+
+        .blue .box-title {
+            color: #60a5fa;
+        }
+
+        .blue .box-badge {
+            background: #1e40af;
+            color: #93c5fd;
+        }
+
+        .purple {
+            border-color: #6d28d955;
+            background: #0f0f1f;
+        }
+
+        .purple .box-title {
+            color: #a78bfa;
+        }
+
+        .purple .box-badge {
+            background: #4c1d95;
+            color: #c4b5fd;
+        }
+
+        .amber {
+            border-color: #92400e55;
+            background: #0f0d00;
+        }
+
+        .amber .box-title {
+            color: #f59e0b;
+        }
+
+        .amber .box-badge {
+            background: #78350f;
+            color: #fcd34d;
+        }
+
+        .green {
+            border-color: #064e3b55;
+            background: #00100a;
+        }
+
+        .green .box-title {
+            color: #34d399;
+        }
+
+        .green .box-badge {
+            background: #064e3b;
+            color: #6ee7b7;
+        }
+
+        .teal {
+            border-color: #134e4a55;
+            background: #00100e;
+        }
+
+        .teal .box-title {
+            color: #2dd4bf;
+        }
+
+        .teal .box-badge {
+            background: #134e4a;
+            color: #99f6e4;
+        }
+
+        .red {
+            border-color: #7f1d1d55;
+            background: #100000;
+        }
+
+        .red .box-title {
+            color: #f87171;
+        }
+
+        .red .box-badge {
+            background: #7f1d1d;
+            color: #fca5a5;
+        }
+
+        .gold {
+            border-color: #78350f66;
+            background: #0f0800;
+        }
+
+        .gold .box-title {
+            color: #fbbf24;
+        }
+
+        .gold .box-badge {
+            background: #92400e;
+            color: #fde68a;
+        }
+
+        .gray {
+            border-color: #33415566;
+            background: #0a0f1a;
+        }
+
+        .gray .box-title {
+            color: #94a3b8;
+        }
+
+        .gray .box-badge {
+            background: #334155;
+            color: #cbd5e1;
+        }
+
+        /* ── Special large box ── */
+        .box-wide {
+            min-width: 260px;
+            flex: 1;
+            max-width: 340px;
+        }
+
+        .box-full {
+            width: 100%;
+            max-width: 480px;
+        }
+
+        .box-center {
+            max-width: 540px;
+            width: 100%;
+        }
+
+        /* ── Arrow connector ── */
+        .arrow-col {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0;
+        }
+
+        .arrow-down {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 6px 0;
+        }
+
+        .arrow-line {
+            width: 2px;
+            height: 28px;
+            background: linear-gradient(to bottom, #334155, #475569);
+        }
+
+        .arrow-label {
+            font-size: 10px;
+            color: #475569;
+            font-family: 'JetBrains Mono', monospace;
+            padding: 4px 10px;
+            background: #0f172a;
+            border: 1px solid #1e293b;
+            border-radius: 20px;
+            white-space: nowrap;
+            margin: 4px 0;
+        }
+
+        .arrow-tip {
+            width: 0;
+            height: 0;
+            border-left: 6px solid transparent;
+            border-right: 6px solid transparent;
+            border-top: 8px solid #475569;
+        }
+
+        /* ── Fan arrows (1-to-many) ── */
+        .fan-section {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 8px 0;
+            gap: 4px;
+        }
+
+        .fan-line-row {
+            display: flex;
+            align-items: flex-end;
+            justify-content: space-between;
+            width: 680px;
+            height: 32px;
+            position: relative;
+        }
+
+        .fan-line-row::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 2px;
+            height: 100%;
+            background: #334155;
+        }
+
+        /* ── Tools row ── */
+        .tools-row {
+            display: flex;
+            gap: 14px;
+            justify-content: center;
+            align-items: flex-start;
+            width: 100%;
+        }
+
+        /* ── Divider line ── */
+        .divider {
+            width: 100%;
+            height: 1px;
+            background: linear-gradient(to right, transparent, #1e293b 20%, #1e293b 80%, transparent);
+            margin: 4px 0;
+        }
+
+        /* ── Icon ── */
+        .icon {
+            font-size: 16px;
+        }
+
+        /* ── Flow description ── */
+        .flow-steps {
+            margin-top: 48px;
+            max-width: 1100px;
+            width: 100%;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 12px;
+        }
+
+        .flow-step {
+            background: #0f172a;
+            border: 1px solid #1e293b;
+            border-radius: 12px;
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .step-num {
+            font-size: 11px;
+            font-weight: 700;
+            color: #475569;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
+
+        .step-title {
+            font-size: 13px;
+            font-weight: 600;
+            color: #e2e8f0;
+        }
+
+        .step-desc {
+            font-size: 11px;
+            color: #64748b;
+            line-height: 1.5;
+        }
+
+        /* ── Legend ── */
+        .legend {
+            margin-top: 24px;
+            max-width: 1100px;
+            width: 100%;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            padding: 16px 24px;
+            background: #0a0f1a;
+            border: 1px solid #1e293b;
+            border-radius: 12px;
+        }
+
+        .legend-title {
+            font-size: 11px;
+            font-weight: 600;
+            color: #475569;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            width: 100%;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 11px;
+            color: #94a3b8;
+        }
+
+        .legend-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- Title -->
+    <div class="title-block">
+        <h1>Dilshaj Infotech AI Chatbot — System Architecture</h1>
+        <p>FastAPI · LangGraph · Ollama llama3.1 · FAISS RAG · Qdrant Memory · MongoDB</p>
+    </div>
+
+    <div class="canvas">
+
+        <!-- ═══ LAYER 1: FRONTEND ═══ -->
+        <div class="layer">
+            <div class="layer-label">Frontend</div>
+            <div class="layer-content">
+                <div class="box blue box-center">
+                    <div class="box-title">
+                        <span class="icon">🖥️</span>
+                        Browser — index.html
+                        <span class="box-badge blue">Client</span>
+                    </div>
+                    <div class="box-sub">
+                        script.js &nbsp;·&nbsp; Streaming SSE consumer &nbsp;·&nbsp; Chat widget UI<br>
+                        Quick replies &nbsp;·&nbsp; "AI is thinking…" indicator
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Arrow 1 -->
+        <div style="display:flex; justify-content:center;">
+            <div class="arrow-down">
+                <div class="arrow-line"></div>
+                <div class="arrow-label">POST /api/v1/chatbot/chat/stream &nbsp;(SSE)</div>
+                <div class="arrow-line"></div>
+                <div class="arrow-tip"></div>
+            </div>
+        </div>
+
+        <!-- ═══ LAYER 2: API GATEWAY ═══ -->
+        <div class="layer">
+            <div class="layer-label">API Layer</div>
+            <div class="layer-content" style="gap:16px;">
+                <div class="box purple box-wide">
+                    <div class="box-title">
+                        <span class="icon">⚡</span>
+                        FastAPI Server
+                        <span class="box-badge">Gateway</span>
+                    </div>
+                    <div class="box-sub">
+                        chatbot.py &nbsp;·&nbsp; Uvicorn + reload<br>
+                        Rate limiting &nbsp;·&nbsp; CORS middleware<br>
+                        StreamingResponse (SSE)
+                    </div>
+                </div>
+                <div class="box gray" style="max-width:220px;">
+                    <div class="box-title">
+                        <span class="icon">⚡</span>
+                        Response Cache
+                        <span class="box-badge">Opt.</span>
+                    </div>
+                    <div class="box-sub">
+                        cache.py &nbsp;·&nbsp; In-memory<br>
+                        5-min TTL &nbsp;·&nbsp; MD5 hash key<br>
+                        Skip payment queries
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Arrow 2 -->
+        <div style="display:flex; justify-content:center;">
+            <div class="arrow-down">
+                <div class="arrow-line"></div>
+                <div class="arrow-label">ChatRequest messages → agent.get_stream_response()</div>
+                <div class="arrow-line"></div>
+                <div class="arrow-tip"></div>
+            </div>
+        </div>
+
+        <!-- ═══ LAYER 3: AGENT ═══ -->
+        <div class="layer">
+            <div class="layer-label">Agent</div>
+            <div class="layer-content">
+                <div class="box amber box-center">
+                    <div class="box-title">
+                        <span class="icon">🧠</span>
+                        LangGraph Agent
+                        <span class="box-badge">Orchestrator</span>
+                    </div>
+                    <div class="box-sub">
+                        graph.py &nbsp;·&nbsp; _chat node &nbsp;·&nbsp; _tool_call node &nbsp;·&nbsp; StateGraph<br>
+                        Greeting detection &nbsp;·&nbsp; Proactive RAG injection &nbsp;·&nbsp; Tool routing<br>
+                        prepare_messages() &nbsp;·&nbsp; dump_messages() &nbsp;·&nbsp; async LangGraph
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Fan connectors label -->
+        <div style="display:flex; justify-content:center; padding: 4px 0;">
+            <div class="arrow-down">
+                <div class="arrow-line"></div>
+                <div class="arrow-label">parallel context fetch (before LLM call)</div>
+                <div class="arrow-line" style="height:10px;"></div>
+            </div>
+        </div>
+
+        <!-- ═══ LAYER 4: SERVICES / TOOLS ═══ -->
+        <div class="layer">
+            <div class="layer-label">Services</div>
+            <div class="layer-content">
+                <div class="tools-row">
+
+                    <!-- RAG -->
+                    <div class="box green box-wide">
+                        <div class="box-title">
+                            <span class="icon">📄</span>
+                            RAG Service — FAISS
+                            <span class="box-badge">Auto</span>
+                        </div>
+                        <div class="box-sub">
+                            rag.py &nbsp;·&nbsp; company_docs_tool<br>
+                            nomic-embed-text (Ollama)<br>
+                            data/company_docs/*.md<br>
+                            Proactive pre-fetch · k=3 chunks<br>
+                            Similarity search (async thread)
+                        </div>
+                    </div>
+
+                    <!-- Memory -->
+                    <div class="box teal box-wide">
+                        <div class="box-title">
+                            <span class="icon">🧩</span>
+                            Memory — Qdrant
+                            <span class="box-badge">LT Mem</span>
+                        </div>
+                        <div class="box-sub">
+                            memory.py &nbsp;·&nbsp; Mem0 AsyncMemory<br>
+                            data/qdrant_db_v3 (local)<br>
+                            768-dim embeddings<br>
+                            Skip for greetings<br>
+                            asyncio.Lock (thread-safe)
+                        </div>
+                    </div>
+
+                    <!-- MongoDB -->
+                    <div class="box red box-wide">
+                        <div class="box-title">
+                            <span class="icon">💳</span>
+                            MongoDB — Payments
+                            <span class="box-badge">Tool</span>
+                        </div>
+                        <div class="box-sub">
+                            mongodb.py &nbsp;·&nbsp; user_payment_tool<br>
+                            Motor async driver<br>
+                            payments collection<br>
+                            check_payment · get_history<br>
+                            get_all_payments · mock fallback
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+
+        <!-- Converge arrow -->
+        <div style="display:flex; justify-content:center; padding: 4px 0;">
+            <div class="arrow-down">
+                <div class="arrow-line" style="height:10px;"></div>
+                <div class="arrow-label">context injected into system prompt</div>
+                <div class="arrow-line"></div>
+                <div class="arrow-tip"></div>
+            </div>
+        </div>
+
+        <!-- ═══ LAYER 5: LLM ═══ -->
+        <div class="layer">
+            <div class="layer-label">LLM</div>
+            <div class="layer-content">
+                <div class="box gold box-center">
+                    <div class="box-title">
+                        <span class="icon">🦙</span>
+                        Ollama — llama3.1 (8B)
+                        <span class="box-badge">Local LLM</span>
+                    </div>
+                    <div class="box-sub">
+                        llm.py &nbsp;·&nbsp; ChatOllama &nbsp;·&nbsp; http://localhost:11434<br>
+                        num_ctx=4096 &nbsp;·&nbsp; num_thread=12 &nbsp;·&nbsp; num_predict=300 &nbsp;·&nbsp;
+                        keep_alive=10m<br>
+                        Tool binding &nbsp;·&nbsp; bind_tools() &nbsp;·&nbsp; tenacity retry (max 3)
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Arrow 4 -->
+        <div style="display:flex; justify-content:center;">
+            <div class="arrow-down">
+                <div class="arrow-line"></div>
+                <div class="arrow-label">AIMessage tokens streamed via astream_events</div>
+                <div class="arrow-line"></div>
+                <div class="arrow-tip"></div>
+            </div>
+        </div>
+
+        <!-- ═══ LAYER 6: RESPONSE ═══ -->
+        <div class="layer">
+            <div class="layer-label">Response</div>
+            <div class="layer-content">
+                <div class="box blue box-center">
+                    <div class="box-title">
+                        <span class="icon">📡</span>
+                        SSE Stream → Browser
+                        <span class="box-badge">Output</span>
+                    </div>
+                    <div class="box-sub">
+                        event_generator() yields chunks &nbsp;·&nbsp; data: {content, done} JSON<br>
+                        _filter_messages() — removes tool/system msgs &nbsp;·&nbsp; Cache store after complete
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- ─── Request Flow Steps ─── -->
+    <div class="flow-steps">
+        <div class="flow-step">
+            <div class="step-num">Step 1</div>
+            <div class="step-title">🖱️ User Sends Message</div>
+            <div class="step-desc">Browser POSTs to /api/v1/chatbot/chat/stream. Cache checked first — hit returns
+                instantly.</div>
+        </div>
+        <div class="flow-step">
+            <div class="step-num">Step 2</div>
+            <div class="step-title">🧠 Agent Starts</div>
+            <div class="step-desc">LangGraph _chat node runs. Detects if greeting → skip heavy services.</div>
+        </div>
+        <div class="flow-step">
+            <div class="step-num">Step 3</div>
+            <div class="step-title">📄 Proactive RAG</div>
+            <div class="step-desc">FAISS searched with user query. Top-3 company doc chunks injected into system prompt
+                — no extra LLM call needed.</div>
+        </div>
+        <div class="flow-step">
+            <div class="step-num">Step 4</div>
+            <div class="step-title">🧩 Memory Search</div>
+            <div class="step-desc">Qdrant searched for past user context. Results appended to system prompt as "User
+                History".</div>
+        </div>
+        <div class="flow-step">
+            <div class="step-num">Step 5</div>
+            <div class="step-title">🦙 Single LLM Call</div>
+            <div class="step-desc">llama3.1 called once with full context. If it calls user_payment_tool → MongoDB
+                queried → second LLM call for answer.</div>
+        </div>
+        <div class="flow-step">
+            <div class="step-num">Step 6</div>
+            <div class="step-title">📡 Stream Response</div>
+            <div class="step-desc">Tokens streamed word-by-word via SSE. Browser displays them live. Response cached for
+                5 minutes.</div>
+        </div>
+    </div>
+
+    <!-- Legend -->
+    <div class="legend">
+        <div class="legend-title">Layer Legend</div>
+        <div class="legend-item">
+            <div class="legend-dot" style="background:#60a5fa;"></div> Frontend / API (Blue)
+        </div>
+        <div class="legend-item">
+            <div class="legend-dot" style="background:#a78bfa;"></div> FastAPI Gateway (Purple)
+        </div>
+        <div class="legend-item">
+            <div class="legend-dot" style="background:#f59e0b;"></div> LangGraph Agent (Amber)
+        </div>
+        <div class="legend-item">
+            <div class="legend-dot" style="background:#34d399;"></div> RAG / FAISS (Green)
+        </div>
+        <div class="legend-item">
+            <div class="legend-dot" style="background:#2dd4bf;"></div> Qdrant Memory (Teal)
+        </div>
+        <div class="legend-item">
+            <div class="legend-dot" style="background:#f87171;"></div> MongoDB Tool (Red)
+        </div>
+        <div class="legend-item">
+            <div class="legend-dot" style="background:#fbbf24;"></div> Ollama LLM (Gold)
+        </div>
+        <div class="legend-item">
+            <div class="legend-dot" style="background:#94a3b8;"></div> Cache / Utility (Gray)
+        </div>
+    </div>
+
+</body>
+
+</html>

@@ -1,85 +1,179 @@
-version: '3.8'
+# ─────────────────────────────────────────────────────────────────────────────
+#  Dilshaj Infotech Chatbot — Docker Compose (Production)
+#  Services: fastapi | ollama | mongodb | qdrant | nginx
+# ─────────────────────────────────────────────────────────────────────────────
 
 services:
-  mongodb:
-    image: mongo:latest
-    ports:
-      - "27017:27017"
-    volumes:
-      - mongodb-data:/data/db
-    restart: always
-    networks:
-      - agent-network
-    healthcheck:
-      test: echo 'db.runCommand("ping").ok' | mongosh localhost:27017/test --quiet
-      interval: 10s
-      timeout: 10s
-      retries: 5
 
-  # Backend API
+  # ── 1. FastAPI Application ──────────────────────────────────────────────────
   app:
     build:
       context: .
-      args:
-        APP_ENV: ${APP_ENV:-production}
+      dockerfile: Dockerfile
+      target: production
+    container_name: dilshaj_app
+    restart: unless-stopped
+    env_file: .env.production
+    environment:
+      OLLAMA_BASE_URL: http://ollama:11434
+      MONGO_URI: mongodb://mongo:27017
+      ENVIRONMENT: production
+      DEBUG: "false"
+      LOG_LEVEL: info
+      MEM0_VECTOR_STORE_URL: http://qdrant:6333
     ports:
       - "8000:8000"
     volumes:
-      - ./app:/app/app
-      - ./logs:/app/logs
-      - ./data:/app/data
-    env_file:
-      - .env
-    environment:
-      - APP_ENV=${APP_ENV:-production}
-      - MONGO_URI=mongodb://mongodb:27017
-      - OLLAMA_BASE_URL=${OLLAMA_BASE_URL:-http://host.docker.internal:11434}
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
+      - faiss_data:/app/data/faiss_index
+      - qdrant_local:/app/data/qdrant_db_v3
+      - ./data/company_docs:/app/data/company_docs:ro
     depends_on:
-      mongodb:
+      ollama:
         condition: service_healthy
-    restart: always
+      mongo:
+        condition: service_healthy
+      qdrant:
+        condition: service_healthy
     networks:
-      - agent-network
-      - monitoring
+      - chatbot_net
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 90s
+    deploy:
+      resources:
+        limits:
+          memory: 2G
 
 
-  # Prometheus for metrics
-  prometheus:
-    image: prom/prometheus:latest
+  # ── 2. Ollama (LLM + Embeddings) ───────────────────────────────────────────
+  ollama:
+    image: ollama/ollama:latest
+    container_name: dilshaj_ollama
+    restart: unless-stopped
     ports:
-      - "9090:9090"
+      - "11434:11434"
     volumes:
-      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
-    command:
-      - '--config.file=/etc/prometheus/prometheus.yml'
-    networks:
-      - monitoring
-    restart: always
-
-  # Grafana for dashboards
-  grafana:
-    image: grafana/grafana:latest
-    ports:
-      - "3000:3000"
-    volumes:
-      - grafana-storage:/var/lib/grafana
-      - ./grafana/dashboards:/etc/grafana/provisioning/dashboards
-      - ./grafana/dashboards/dashboards.yml:/etc/grafana/provisioning/dashboards/dashboards.yml
+      - ollama_models:/root/.ollama
     environment:
-      - GF_SECURITY_ADMIN_PASSWORD=admin
-      - GF_USERS_ALLOW_SIGN_UP=false
+      OLLAMA_NUM_PARALLEL: 1
+      OLLAMA_FLASH_ATTENTION: 1
     networks:
-      - monitoring
-    restart: always
+      - chatbot_net
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:11434/api/tags"]
+      interval: 30s
+      timeout: 15s
+      retries: 10
+      start_period: 30s
+    deploy:
+      resources:
+        limits:
+          memory: 10G
 
-networks:
-  agent-network:
-    driver: bridge
-  monitoring:
-    driver: bridge
 
+  # ── 3. Ollama Model Puller (runs once on first deploy) ─────────────────────
+  ollama_puller:
+    image: curlimages/curl:latest
+    container_name: dilshaj_ollama_puller
+    restart: "no"
+    depends_on:
+      ollama:
+        condition: service_healthy
+    networks:
+      - chatbot_net
+    entrypoint: >
+      sh -c "
+        echo 'Pulling llama3.1...' &&
+        curl -s -X POST http://ollama:11434/api/pull -H 'Content-Type: application/json' -d '{\"name\": \"llama3.1\"}' | tail -1 &&
+        echo 'Pulling nomic-embed-text...' &&
+        curl -s -X POST http://ollama:11434/api/pull -H 'Content-Type: application/json' -d '{\"name\": \"nomic-embed-text\"}' | tail -1 &&
+        echo 'All models ready!'
+      "
+
+
+  # ── 4. MongoDB ──────────────────────────────────────────────────────────────
+  mongo:
+    image: mongo:7.0
+    container_name: dilshaj_mongo
+    restart: unless-stopped
+    environment:
+      MONGO_INITDB_DATABASE: company_app
+    ports:
+      - "127.0.0.1:27017:27017"
+    volumes:
+      - mongo_data:/data/db
+      - ./docker/mongo-init.js:/docker-entrypoint-initdb.d/init.js:ro
+    networks:
+      - chatbot_net
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 15s
+      timeout: 10s
+      retries: 5
+      start_period: 20s
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+
+
+  # ── 5. Qdrant (Vector DB for long-term memory) ─────────────────────────────
+  qdrant:
+    image: qdrant/qdrant:latest
+    container_name: dilshaj_qdrant
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:6333:6333"
+    volumes:
+      - qdrant_data:/qdrant/storage
+    networks:
+      - chatbot_net
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:6333/healthz"]
+      interval: 20s
+      timeout: 10s
+      retries: 5
+      start_period: 15s
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+
+
+  # ── 6. Nginx (Reverse Proxy + SSL) ─────────────────────────────────────────
+  nginx:
+    image: nginx:alpine
+    container_name: dilshaj_nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./docker/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./docker/ssl:/etc/nginx/ssl:ro
+      - nginx_logs:/var/log/nginx
+    depends_on:
+      app:
+        condition: service_healthy
+    networks:
+      - chatbot_net
+
+
+# ── Named Volumes ──────────────────────────────────────────────────────────────
 volumes:
-  grafana-storage:
-  mongodb-data:
+  ollama_models:
+  mongo_data:
+  qdrant_data:
+  qdrant_local:
+  faiss_data:
+  nginx_logs:
+
+
+# ── Internal Network ───────────────────────────────────────────────────────────
+networks:
+  chatbot_net:
+    driver: bridge
+    name: dilshaj_network

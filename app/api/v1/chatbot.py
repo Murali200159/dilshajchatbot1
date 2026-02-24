@@ -29,8 +29,25 @@ from app.schemas.chat import (
     StreamResponse,
 )
 
+from app.core.cache import get_cached, set_cache
+
 router = APIRouter()
 agent = LangGraphAgent()
+
+# Keywords that should NOT be cached (real-time data)
+NO_CACHE_KEYWORDS = {"payment", "transaction", "txn", "invoice", "balance", "status"}
+
+def _should_cache(text: str) -> bool:
+    t = text.lower()
+    return not any(kw in t for kw in NO_CACHE_KEYWORDS)
+
+def _filter_messages(messages):
+    """Return only user/assistant messages with non-empty content for the API response."""
+    return [
+        m for m in messages
+        if getattr(m, 'role', m.get('role', '') if isinstance(m, dict) else '') in ('user', 'assistant')
+        and (getattr(m, 'content', None) or (m.get('content') if isinstance(m, dict) else None))
+    ]
 
 # ---------------------------
 # CHAT (NO AUTH)
@@ -43,24 +60,39 @@ async def chat(
     chat_request: ChatRequest,
 ):
     try:
-        session_id = "guest_session"
-        user_id = "guest_user"
+        session_id = chat_request.session_id or "guest_session"
+        user_id = chat_request.user_id or "guest_user"
+        user_text = chat_request.messages[-1].content or ""
 
-        logger.info(
-            "chat_request_received",
-            session_id=session_id,
-            message_count=len(chat_request.messages),
-        )
+        # ── Cache check ────────────────────────────────────────────────────
+        if _should_cache(user_text):
+            cached = get_cached(user_text)
+            if cached:
+                logger.info("cache_hit", question=user_text[:40])
+                return ChatResponse(messages=[
+                    Message(role="user", content=user_text),
+                    Message(role="assistant", content=cached),
+                ])
+
+        logger.info("chat_request_received", session_id=session_id,
+                    message_count=len(chat_request.messages))
 
         result = await agent.get_response(
-            chat_request.messages,
-            session_id,
-            user_id=user_id,
+            chat_request.messages, session_id, user_id=user_id,
         )
 
         logger.info("chat_request_processed", session_id=session_id)
+        filtered = _filter_messages(result)
 
-        return ChatResponse(messages=result)
+        # ── Cache store ────────────────────────────────────────────────────
+        assistant_msgs = [m for m in filtered
+                          if getattr(m, 'role', '') == 'assistant'
+                          or (isinstance(m, dict) and m.get('role') == 'assistant')]
+        if assistant_msgs and _should_cache(user_text):
+            last_ans = getattr(assistant_msgs[-1], 'content', None) or ""
+            set_cache(user_text, last_ans)
+
+        return ChatResponse(messages=filtered)
 
     except Exception as e:
         logger.error("chat_request_failed", error=str(e), exc_info=True)
@@ -78,42 +110,45 @@ async def chat_stream(
     chat_request: ChatRequest,
 ):
     try:
-        session_id = "guest_session"
-        user_id = "guest_user"
+        session_id = chat_request.session_id or "guest_session"
+        user_id = chat_request.user_id or "guest_user"
+        user_text = chat_request.messages[-1].content or ""
 
-        logger.info(
-            "stream_chat_request_received",
-            session_id=session_id,
-            message_count=len(chat_request.messages),
-        )
+        logger.info("stream_chat_request_received", session_id=session_id,
+                    message_count=len(chat_request.messages))
 
         async def event_generator():
             try:
                 full_response = ""
 
-                with llm_stream_duration_seconds.labels(
-                    model=settings.LLM_MODEL
-                ).time():
+                # ── Cache check: stream cached answer instantly ─────────────
+                if _should_cache(user_text):
+                    cached = get_cached(user_text)
+                    if cached:
+                        logger.info("stream_cache_hit", question=user_text[:40])
+                        # Stream cached words one by one for a natural feel
+                        for word in cached.split(" "):
+                            chunk = word + " "
+                            yield f"data: {json.dumps({'content': chunk, 'done': False})}\n\n"
+                        yield f"data: {json.dumps({'content': '', 'done': True})}\n\n"
+                        return
+
+                with llm_stream_duration_seconds.labels(model=settings.LLM_MODEL).time():
                     async for chunk in agent.get_stream_response(
-                        chat_request.messages,
-                        session_id,
-                        user_id=user_id,
+                        chat_request.messages, session_id, user_id=user_id,
                     ):
                         full_response += chunk
-                        response = StreamResponse(content=chunk, done=False)
-                        yield f"data: {json.dumps(response.model_dump())}\n\n"
+                        yield f"data: {json.dumps({'content': chunk, 'done': False})}\n\n"
 
-                final_response = StreamResponse(content="", done=True)
-                yield f"data: {json.dumps(final_response.model_dump())}\n\n"
+                # ── Cache store after streaming completes ───────────────────
+                if full_response and _should_cache(user_text):
+                    set_cache(user_text, full_response)
+
+                yield f"data: {json.dumps({'content': '', 'done': True})}\n\n"
 
             except Exception as e:
-                logger.error(
-                    "stream_chat_request_failed",
-                    error=str(e),
-                    exc_info=True,
-                )
-                error_response = StreamResponse(content=str(e), done=True)
-                yield f"data: {json.dumps(error_response.model_dump())}\n\n"
+                logger.error("stream_chat_request_failed", error=str(e), exc_info=True)
+                yield f"data: {json.dumps({'content': str(e), 'done': True})}\n\n"
 
         return StreamingResponse(event_generator(), media_type="text/event-stream")
 
@@ -138,7 +173,8 @@ async def get_session_messages(
     try:
         session_id = "guest_session"
         messages = await agent.get_chat_history(session_id)
-        return ChatResponse(messages=messages)
+        filtered = _filter_messages(messages)
+        return ChatResponse(messages=filtered)
 
     except Exception as e:
         logger.error("get_messages_failed", error=str(e), exc_info=True)

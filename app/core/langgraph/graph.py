@@ -51,12 +51,10 @@ from app.utils import (
 
 class LangGraphAgent:
     def __init__(self):
-
         self.llm_service = llm_service
         self.llm_service.bind_tools(tools)
         self.tools_by_name = {tool.name: tool for tool in tools}
 
-        self._graph: Optional[CompiledStateGraph] = None
         self._graph: Optional[CompiledStateGraph] = None
 
         logger.info(
@@ -65,36 +63,42 @@ class LangGraphAgent:
             environment=settings.ENVIRONMENT.value,
         )
 
-
     async def create_graph(self) -> Optional[CompiledStateGraph]:
-
         if self._graph is None:
             try:
                 graph_builder = StateGraph(GraphState)
-                graph_builder.add_node("chat", self._chat)
-                graph_builder.add_node("tool_call", self._tool_call)
                 
-                graph_builder.set_entry_point("chat")
+                # Nodes
+                graph_builder.add_node("router", self._router_node)
+                graph_builder.add_node("tool_call", self._tool_call_node)
+                graph_builder.add_node("final_llm", self._final_llm_node)
+                
+                # Entry point is the Router
+                graph_builder.set_entry_point("router")
                 
                 # Edges
-                # Note: 'chat' handles its own conditional transition via Command(goto)
-                # but we still need a default edge from tool_call back to chat
-                graph_builder.add_edge("tool_call", "chat")
+                graph_builder.add_conditional_edges(
+                    "router",
+                    self._router_logic,
+                    {
+                        "tool_call": "tool_call",
+                        "final_llm": "final_llm",
+                    }
+                )
+                
+                # After tool call, go to final_llm
+                graph_builder.add_edge("tool_call", "final_llm")
+                
+                # After final_llm, we are done
+                graph_builder.add_edge("final_llm", END)
 
-                # ✅ CHANGED: Use MemorySaver instead of PostgresSaver
                 checkpointer = MemorySaver()
-
                 self._graph = graph_builder.compile(
                     checkpointer=checkpointer,
                     name=f"{settings.PROJECT_NAME} Agent ({settings.ENVIRONMENT.value})",
                 )
 
-                logger.info(
-                    "graph_created",
-                    graph_name=f"{settings.PROJECT_NAME} Agent",
-                    environment=settings.ENVIRONMENT.value,
-                    has_checkpointer=True,
-                )
+                logger.info("graph_created_strictly_aligned")
 
             except Exception as e:
                 logger.error("graph_creation_failed", error=str(e))
@@ -102,86 +106,38 @@ class LangGraphAgent:
 
         return self._graph
 
-    # ❌ REMOVED: clear_chat_history Postgres delete logic
-    async def clear_chat_history(self, session_id: str) -> None:
-        if self._graph is None:
-            self._graph = await self.create_graph()
-
-        try:
-            await self._graph.adelete(
-                config={"configurable": {"thread_id": session_id}}
-            )
-            logger.info("chat_history_cleared", session_id=session_id)
-        except Exception as e:
-            logger.error("Failed to clear chat history", error=str(e))
-            raise
-
-    async def _chat(self, state: GraphState, config: RunnableConfig):
-        """Chat node for processing messages through the LLM."""
+    async def _router_node(self, state: GraphState, config: RunnableConfig):
+        """Router node: decides if tool(s) or direct response is needed."""
         messages = prepare_messages(state["messages"], llm=self.llm_service.get_llm())
         
-        # Log detected intent based on message content
-        last_msg_content = str(messages[-1]["content"])
-        logger.info(
-            "chat_node_intent_detection", 
-            message_snippet=last_msg_content[:50],
-            message_length=len(last_msg_content)
-        )
-        
-        # Load system prompt with memory context
+        # We call the LLM to see if it wants to use tools
+        # First, load memory and context (if any)
         user_id = state.get("user_id", "guest_user")
-        memories = await memory_service.search(query=str(messages[-1]["content"]), user_id=user_id)
-        
-        # Extract tool results to inject as context
-        tool_results = []
-        for msg in state["messages"]:
-            # Handle both class instances and dictionaries
-            if isinstance(msg, ToolMessage):
-                tool_results.append(f"Output from tool: {msg.content}")
-            elif isinstance(msg, dict):
-                # Role 'tool' is used for tool outputs
-                if msg.get("role") == "tool" or msg.get("type") == "tool":
-                    tool_results.append(f"Output from tool: {msg.get('content')}")
-        
-        if tool_results:
-            retrieved_context = "Verified Internal Data:\n" + "\n\n".join(tool_results)
-            logger.info("context_injection", context_source="tools", context_length=len(retrieved_context))
-        else:
-            retrieved_context = "No internal document context retrieved yet. You should use company_docs_tool if you need company-specific info."
-            logger.debug("context_injection", context_source="none")
+        last_msg = messages[-1]
+        last_msg_content = getattr(last_msg, "content", str(last_msg))
+
+        # Long-term memory search
+        memories = await memory_service.search(query=str(last_msg_content), user_id=user_id)
         
         system_prompt = await load_system_prompt(
             long_term_memory=str(memories),
-            retrieved_context=retrieved_context
+            retrieved_context="Initial routing phase. Determine if tools are needed."
         )
         
-        messages = [{"role": "system", "content": system_prompt}] + messages
+        routing_messages = [{"role": "system", "content": system_prompt}] + messages
+        
+        response = await self.llm_service.call(routing_messages, config=config)
+        
+        return {"messages": [response], "long_term_memory": str(memories)}
 
-        # Add to long term memory asynchronously
-        await memory_service.add(messages[-1]["content"], user_id=user_id)
+    def _router_logic(self, state: GraphState):
+        """Route based on tool calls in the last message."""
+        last_message = state["messages"][-1]
+        if hasattr(last_message, "tool_calls") and last_message.tool_calls:
+            return "tool_call"
+        return "final_llm"
 
-        try:
-            with llm_inference_duration_seconds.labels(
-                model=settings.DEFAULT_LLM_MODEL
-            ).time():
-                # Pass config to allow LangGraph to handle callbacks/streaming
-                response = await self.llm_service.call(messages, config=config)
-            
-            parsed_response = process_llm_response(response)
-            
-            # Determine if we need to call tools
-            if response.tool_calls:
-                return Command(
-                    update={"messages": [response]},
-                    goto="tool_call"
-                )
-            
-            return {"messages": [response]}
-        except Exception as e:
-            logger.error("chat_node_failed", error=str(e))
-            raise
-
-    async def _tool_call(self, state: GraphState, config: RunnableConfig):
+    async def _tool_call_node(self, state: GraphState, config: RunnableConfig):
         """Execute tool calls requested by the LLM."""
         last_message = state["messages"][-1]
         tool_outputs = []
@@ -207,6 +163,38 @@ class LangGraphAgent:
         
         return {"messages": tool_outputs}
 
+    async def _final_llm_node(self, state: GraphState, config: RunnableConfig):
+        """Final LLM node: generates the final response using tool results."""
+        messages = prepare_messages(state["messages"], llm=self.llm_service.get_llm())
+        
+        # Collect tool results for context injection
+        tool_results = []
+        for msg in reversed(state["messages"]):
+            if isinstance(msg, ToolMessage):
+                tool_results.append(f"Output from tool: {msg.content}")
+            elif isinstance(msg, dict) and msg.get("role") == "tool":
+                 tool_results.append(f"Output from tool: {msg.get('content')}")
+        
+        retrieved_context = "\n\n".join(tool_results) if tool_results else "No specific tool data retrieved."
+        
+        system_prompt = await load_system_prompt(
+            long_term_memory=state.get("long_term_memory", "[]"),
+            retrieved_context=retrieved_context
+        )
+        
+        final_messages = [{"role": "system", "content": system_prompt}] + messages
+        
+        response = await self.llm_service.call(final_messages, config=config)
+        
+        # Save to memory (as per diagram: MongoDB Memory)
+        user_id = state.get("user_id", "guest_user")
+        last_user_msg = [m for m in messages if isinstance(m, dict) and m.get("role") == "user"]
+        if last_user_msg:
+             # Just store the user's last query and the current info
+             asyncio.create_task(memory_service.add(str(last_user_msg[-1].get("content")), user_id=user_id))
+
+        return {"messages": [response]}
+
     async def get_response(self, messages: list, session_id: str, user_id: str = "guest_user"):
         """Sync interface for getting agent response."""
         if self._graph is None:
@@ -227,8 +215,11 @@ class LangGraphAgent:
         config = {"configurable": {"thread_id": session_id}}
 
         async for event in self._graph.astream(inputs, config=config, stream_mode="messages"):
+            # We only stream the final LLM node's content to the user
             if isinstance(event[0], AIMessage) and event[0].content:
-                yield event[0].content
+                # Check if this message has tool calls - if so, it's from the router, don't stream to user yet
+                if not (hasattr(event[0], "tool_calls") and event[0].tool_calls):
+                    yield event[0].content
 
     async def get_chat_history(self, session_id: str):
         """Retrieve chat history for a session."""
