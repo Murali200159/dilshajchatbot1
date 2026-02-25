@@ -1,0 +1,47 @@
+Loading environment: Environment.DEVELOPMENT
+Loaded environment from C:\Users\sarip\Downloads\fastapi-langgraph-agent-production-ready-template-master\fastapi-langgraph-agent-production-ready-template-master\.env
+
+--- Starting Comprehensive Component Check ---
+
+1. Testing MongoDB...
+[2m2026-02-25T04:25:11.957521Z[0m [[32m[1minfo     [0m] [1mlogging_initialized           [0m [[0m[1m[34mapp.core.logging[0m][0m [36mdebug[0m=[35mTrue[0m [36menvironment[0m=[35mdevelopment[0m [36mfilename[0m=[35mlogging.py[0m [36mfunc_name[0m=[35m<module>[0m [36mlineno[0m=[35m232[0m [36mlog_format[0m=[35mconsole[0m [36mlog_level[0m=[35mDEBUG[0m [36mmodule[0m=[35mlogging[0m [36mpathname[0m=[35mC:\Users\sarip\Downloads\fastapi-langgraph-agent-production-ready-template-master\fastapi-langgraph-agent-production-ready-template-master\app\core\logging.py[0m
+{"message": "Starting topology monitoring", "topologyId": {"$oid": "699e79a7e6d39d650d9d4725"}}
+{"message": "Topology description changed", "topologyId": {"$oid": "699e79a7e6d39d650d9d4725"}, "previousDescription": "<TopologyDescription id: 699e79a7e6d39d650d9d4725, topology_type: Unknown, servers: []>", "newDescription": "<TopologyDescription id: 699e79a7e6d39d650d9d4725, topology_type: Unknown, servers: [<ServerDescription ('127.0.0.1', 27017) server_type: Unknown, rtt: None>]>"}
+{"message": "Starting server monitoring", "topologyId": {"$oid": "699e79a7e6d39d650d9d4725"}, "serverHost": "127.0.0.1", "serverPort": 27017}
+[2m2026-02-25T04:25:11.965864Z[0m [[32m[1minfo     [0m] [1mmongo_database_initialized    [0m [[0m[1m[34mapp.core.logging[0m][0m [36menvironment[0m=[35mdevelopment[0m [36mfilename[0m=[35mdatabase.py[0m [36mfunc_name[0m=[35m__init__[0m [36mlineno[0m=[35m44[0m [36mmodule[0m=[35mdatabase[0m [36mpathname[0m=[35mC:\Users\sarip\Downloads\fastapi-langgraph-agent-production-ready-template-master\fastapi-langgraph-agent-production-ready-template-master\app\services\database.py[0m
+[2m2026-02-25T04:25:16.742972Z[0m [[32m[1minfo     [0m] [1mllm_service_initialized       [0m [[0m[1m[34mapp.core.logging[0m][0m [36mbase_url[0m=[35mhttp://localhost:11434[0m [36menvironment[0m=[35mdevelopment[0m [36mfilename[0m=[35mllm.py[0m [36mfunc_name[0m=[35m__init__[0m [36mlineno[0m=[35m36[0m [36mmodel[0m=[35mllama3.1[0m [36mmodule[0m=[35mllm[0m [36mpathname[0m=[35mC:\Users\sarip\Downloads\fastapi-langgraph-agent-production-ready-template-master\fastapi-langgraph-agent-production-ready-template-master\app\services\llm.py[0m [36mprovider[0m=[35mollama[0m
+[2m2026-02-25T04:25:23.548335Z[0m [[32m[1minfo     [0m] [1mrag_embeddings_initialized    [0m [[0m[1m[34mapp.core.logging[0m][0m [36menvironment[0m=[35mdevelopment[0m [36mfilename[0m=[35mrag.py[0m [36mfunc_name[0m=[35m__init__[0m [36mlineno[0m=[35m39[0m [36mmodel[0m=[35mnomic-embed-text[0m [36mmodule[0m=[35mrag[0m [36mpathname[0m=[35mC:\Users\sarip\Downloads\fastapi-langgraph-agent-production-ready-template-master\fastapi-langgraph-agent-production-ready-template-master\app\services\rag.py[0m [36mprovider[0m=[35mollama[0m
+[2m2026-02-25T04:25:23.553168Z[0m [[32m[1minfo     [0m] [1mrag_loading_existing_index    [0m [[0m[1m[34mapp.core.logging[0m][0m [36menvironment[0m=[35mdevelopment[0m [36mfilename[0m=[35mrag.py[0m [36mfunc_name[0m=[35m_initialize_vector_store_sync[0m [36mlineno[0m=[35m52[0m [36mmodule[0m=[35mrag[0m [36mpath[0m=[35mdata/faiss_index[0m [36mpathname[0m=[35mC:\Users\sarip\Downloads\fastapi-langgraph-agent-production-ready-template-master\fastapi-langgraph-agent-production-ready-template-master\app\services\rag.py[0m
+Environment variable FAISS_OPT_LEVEL is not set, so let's pick the instruction set according to the current CPU
+Loading faiss with AVX2 support.
+Successfully loaded faiss with AVX2 support.
+connect_tcp.started host='localhost' port=11434 local_address=None timeout=None socket_options=None
+connect_tcp.complete return_value=<httpcore._backends.sync.SyncStream object at 0x0000018EE6FEBCB0>
+send_request_headers.started request=<Request [b'POST']>
+send_request_headers.complete
+send_request_body.started request=<Request [b'POST']>
+send_request_body.complete
+receive_response_headers.started request=<Request [b'POST']>
+receive_response_headers.complete return_value=(b'HTTP/1.1', 200, b'OK', [(b'Content-Type', b'application/json; charset=utf-8'), (b'Date', b'Wed, 25 Feb 2026 04:25:25 GMT'), (b'Transfer-Encoding', b'chunked')])
+HTTP Request: POST http://localhost:11434/api/embed "HTTP/1.1 200 OK"
+receive_response_body.started request=<Request [b'POST']>
+receive_response_body.complete
+response_closed.started
+response_closed.complete
+{"message": "Connection pool created", "clientId": {"$oid": "699e79a7e6d39d650d9d4725"}, "serverHost": "127.0.0.1", "serverPort": 27017}
+{"message": "Server selection started", "selector": "Primary()", "operation": "ping", "topologyDescription": "<TopologyDescription id: 699e79a7e6d39d650d9d4725, topology_type: Unknown, servers: [<ServerDescription ('127.0.0.1', 27017) server_type: Unknown, rtt: None>]>", "clientId": {"$oid": "699e79a7e6d39d650d9d4725"}}
+{"message": "Server heartbeat started", "topologyId": {"$oid": "699e79a7e6d39d650d9d4725"}, "driverConnectionId": 1, "serverHost": "127.0.0.1", "serverPort": 27017, "awaited": false}
+{"message": "Waiting for suitable server to become available", "selector": "Primary()", "operation": "ping", "topologyDescription": "<TopologyDescription id: 699e79a7e6d39d650d9d4725, topology_type: Unknown, servers: [<ServerDescription ('127.0.0.1', 27017) server_type: Unknown, rtt: None>]>", "clientId": {"$oid": "699e79a7e6d39d650d9d4725"}, "remainingTimeMS": 1996}
+{"message": "Server heartbeat succeeded", "topologyId": {"$oid": "699e79a7e6d39d650d9d4725"}, "driverConnectionId": 1, "serverConnectionId": 17, "serverHost": "127.0.0.1", "serverPort": 27017, "awaited": false, "durationMS": 1.2136000000282365, "reply": "{\"helloOk\": true, \"ismaster\": true, \"topologyVersion\": {\"processId\": {\"$oid\": \"699e74bbdb6fa4c7e360e660\"}}, \"maxBsonObjectSize\": 16777216, \"maxMessageSizeBytes\": 48000000, \"maxWriteBatchSize\": 100000, \"localTime\": {\"$date\": \"2026-02-25T04:25:28.888Z\"}, \"logicalSessionTimeoutMinutes\": 30, \"connectionId\": 17, \"maxWireVersion\": 25, \"ok\": 1.0}"}
+{"message": "Connection pool ready", "clientId": {"$oid": "699e79a7e6d39d650d9d4725"}, "serverHost": "127.0.0.1", "serverPort": 27017}
+{"message": "Topology description changed", "topologyId": {"$oid": "699e79a7e6d39d650d9d4725"}, "previousDescription": "<TopologyDescription id: 699e79a7e6d39d650d9d4725, topology_type: Unknown, servers: [<ServerDescription ('127.0.0.1', 27017) server_type: Unknown, rtt: None>]>", "newDescription": "<TopologyDescription id: 699e79a7e6d39d650d9d4725, topology_type: Single, servers: [<ServerDescription ('127.0.0.1', 27017) server_type: Standalone, rtt: 0.0012136000000282365>]>"}
+{"message": "Server selection succeeded", "selector": "Primary()", "operation": "ping", "topologyDescription": "<TopologyDescription id: 699e79a7e6d39d650d9d4725, topology_type: Single, servers: [<ServerDescription ('127.0.0.1', 27017) server_type: Standalone, rtt: 0.0012136000000282365>]>", "clientId": {"$oid": "699e79a7e6d39d650d9d4725"}, "serverHost": "127.0.0.1", "serverPort": 27017}
+{"message": "Connection checkout started", "clientId": {"$oid": "699e79a7e6d39d650d9d4725"}, "serverHost": "127.0.0.1", "serverPort": 27017}
+{"message": "Server heartbeat started", "topologyId": {"$oid": "699e79a7e6d39d650d9d4725"}, "driverConnectionId": 1, "serverConnectionId": 17, "serverHost": "127.0.0.1", "serverPort": 27017, "awaited": true}
+{"message": "Connection created", "clientId": {"$oid": "699e79a7e6d39d650d9d4725"}, "serverHost": "127.0.0.1", "serverPort": 27017, "driverConnectionId": 1}
+{"message": "Connection ready", "clientId": {"$oid": "699e79a7e6d39d650d9d4725"}, "serverHost": "127.0.0.1", "serverPort": 27017, "driverConnectionId": 1, "durationMS": 0.00203020000003562}
+{"message": "Connection checked out", "clientId": {"$oid": "699e79a7e6d39d650d9d4725"}, "serverHost": "127.0.0.1", "serverPort": 27017, "driverConnectionId": 1, "durationMS": 0.011640499999884923}
+{"message": "Command started", "clientId": {"$oid": "699e79a7e6d39d650d9d4725"}, "command": "{\"ping\": 1, \"lsid\": {\"id\": {\"$binary\": {\"base64\": \"weAifZQ3SzO3t8GgRqyIHw==\", \"subType\": \"04\"}}}, \"$db\": \"admin\"}", "commandName": "ping", "databaseName": "admin", "requestId": 18467, "operationId": 18467, "driverConnectionId": 1, "serverConnectionId": 19, "serverHost": "127.0.0.1", "serverPort": 27017}
+{"message": "Command succeeded", "clientId": {"$oid": "699e79a7e6d39d650d9d4725"}, "durationMS": 3.3379999999999996, "reply": "{\"ok\": 1.0}", "commandName": "ping", "databaseName": "admin", "requestId": 18467, "operationId": 18467, "driverConnectionId": 1, "serverConnectionId": 19, "serverHost": "127.0.0.1", "serverPort": 27017}
+{"message": "Connection checked in", "clientId": {"$oid": "699e79a7e6d39d650d9d4725"}, "serverHost": "127.0.0.1", "serverPort": 27017, "driverConnectionId": 1}
+{"message": "Server heartbeat failed", "topologyId": {"$oid": "699e79a7e6d39d650d9d4725"}, "serverHost": "127.0.0.1", "serverPort": 27017, "awaited": true, "durationMS": 510.48650000007, "failure": "\"_OperationCancelled('operation cancelled')\"", "driverConnectionId": 1}
