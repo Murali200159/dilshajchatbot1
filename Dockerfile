@@ -31,6 +31,7 @@ WORKDIR /app
 # Install only runtime system deps
 RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
+    libgomp1 \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy pre-built wheels and install (no compilation needed)
